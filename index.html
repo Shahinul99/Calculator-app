@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Calculator</title>
+    <style>
+        :root {
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            --bg: #f2f0ea;
+            --card: #fffdf8;
+            --ink: #2a2620;
+            --muted: #7a7366;
+            --line: #d9d4c7;
+            --accent: #c2561f;
+            --ai: #fff;
+            --key: #e9e5d9
+        }
+
+        @media(prefers-color-scheme:dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #1a1814;
+                --card: #24211c;
+                --ink: #efe9dc;
+                --muted: #a39b8a;
+                --line: #3a352d;
+                --accent: #e8895a;
+                --ai: #1a1814;
+                --key: #2f2b24
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #1a1814;
+            --card: #24211c;
+            --ink: #efe9dc;
+            --muted: #a39b8a;
+            --line: #3a352d;
+            --accent: #e8895a;
+            --ai: #1a1814;
+            --key: #2f2b24
+        }
+
+        html {
+            scroll-padding-top: env(safe-area-inset-top, 0px)
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font: 18px/1.4 "Avenir Next", "Segoe UI", system-ui, sans-serif
+        }
+
+        main {
+            max-width: 340px;
+            margin: 0 auto;
+            padding: 28px 16px 48px
+        }
+
+        .screen {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            text-align: right;
+            min-height: 96px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end
+        }
+
+        .expr {
+            color: var(--muted);
+            font-size: .9rem;
+            min-height: 1.4em;
+            overflow-wrap: anywhere
+        }
+
+        .val {
+            font: 600 2.2rem/1.1 Georgia, serif;
+            overflow-wrap: anywhere
+        }
+
+        .pad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px
+        }
+
+        button {
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--ink);
+            background: var(--key);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px 0
+        }
+
+        button.op {
+            background: var(--card);
+            color: var(--accent)
+        }
+
+        button.eq {
+            background: var(--accent);
+            color: var(--ai);
+            border-color: var(--accent)
+        }
+
+        button.wide {
+            grid-column: span 2
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px
+        }
+
+        .hist {
+            margin: 18px 0 0;
+            padding: 0;
+            list-style: none;
+            color: var(--muted);
+            font-size: .9rem;
+            display: grid;
+            gap: 4px;
+            text-align: right
+        }
+    </style>
+</head>
+
+<body>
+    <main id="app"></main>
+    <script>
+        function h(t, p = {}, ...k) { const e = document.createElement(t); for (const [n, v] of Object.entries(p)) { if (n.startsWith("on")) e.addEventListener(n.slice(2), v); else if (n in e) e[n] = v; else e.setAttribute(n, v) } e.append(...k.flat().filter(Boolean)); return e }
+        let cur = "0", prev = null, op = null, fresh = false; const history = [];
+        const expr = h("div", { className: "expr" }), val = h("div", { className: "val", "aria-live": "polite" }), hist = h("ul", { className: "hist" });
+        const calc = (a, b, o) => o === "+" ? a + b : o === "−" ? a - b : o === "×" ? a * b : b === 0 ? NaN : a / b;
+        const fmt = n => Number.isFinite(n) ? String(+n.toPrecision(12)) : "Can't divide by 0";
+        function draw() {
+            val.textContent = cur; expr.textContent = prev !== null ? `${fmt(prev)} ${op}` : "";
+            hist.replaceChildren(...history.slice(-3).map(t => h("li", {}, t)))
+        }
+        function digit(d) { if (fresh || cur === "0" || isNaN(cur)) { cur = d; fresh = false } else if (cur.length < 14) cur += d; draw() }
+        function dot() { if (fresh) { cur = "0"; fresh = false } if (!cur.includes(".")) cur += "."; draw() }
+        function operator(o) {
+            const n = parseFloat(cur); if (isNaN(n)) return;
+            if (prev !== null && op && !fresh) prev = calc(prev, n, op); else prev = n;
+            op = o; fresh = true; if (isNaN(prev)) { clearAll(); cur = "Can't divide by 0" } draw()
+        }
+        function equals() {
+            if (prev === null || !op) return; const n = parseFloat(cur), r = calc(prev, n, op);
+            if (!isNaN(r)) history.push(`${fmt(prev)} ${op} ${fmt(n)} = ${fmt(r)}`);
+            cur = fmt(r); prev = null; op = null; fresh = true; draw()
+        }
+        function clearAll() { cur = "0"; prev = null; op = null; fresh = false; draw() }
+        function back() { if (!fresh && cur.length > 1 && !isNaN(cur)) cur = cur.slice(0, -1); else cur = "0"; draw() }
+        function sign() { if (cur !== "0" && !isNaN(cur)) { cur = cur.startsWith("-") ? cur.slice(1) : "-" + cur; draw() } }
+        const keys = [["AC", clearAll, "wide"], ["⌫", back, ""], ["÷", () => operator("÷"), "op"],
+        ["7", () => digit("7")], ["8", () => digit("8")], ["9", () => digit("9")], ["×", () => operator("×"), "op"],
+        ["4", () => digit("4")], ["5", () => digit("5")], ["6", () => digit("6")], ["−", () => operator("−"), "op"],
+        ["1", () => digit("1")], ["2", () => digit("2")], ["3", () => digit("3")], ["+", () => operator("+"), "op"],
+        ["±", sign], ["0", () => digit("0")], [".", dot], ["=", equals, "eq"]];
+        const pad = h("div", { className: "pad" }, keys.map(([l, f, c]) => h("button", { type: "button", className: c, onclick: f }, l)));
+        document.getElementById("app").append(h("div", { className: "screen" }, expr, val), pad, hist);
+
+
+        document.addEventListener("keydown", e => {
+            if (/^[0-9]$/.test(e.key)) digit(e.key); else if (e.key === ".") dot();
+            else if (e.key === "+") operator("+"); else if (e.key === "-") operator("−");
+            else if (e.key === "*") operator("×"); else if (e.key === "/") { e.preventDefault(); operator("÷") }
+            else if (e.key === "Enter" || e.key === "=") { e.preventDefault(); equals() }
+            else if (e.key === "Backspace") back(); else if (e.key === "Escape") clearAll()
+        });
+        draw();
+
+        
+    </script>
+</body>
+
+</html>
