@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Easy Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 260px;
+            margin: 40px auto;
+        }
+
+        #screen {
+            border: 2px solid #333;
+            padding: 12px;
+            font-size: 28px;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        #buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        button {
+            font-size: 22px;
+            padding: 14px 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Calculator</h1>
+    <div id="screen">0</div>
+    <div id="buttons"></div>
+
+    <script>
+        // 1. Find the elements we need
+        const screen = document.getElementById("screen");
+        const buttons = document.getElementById("buttons");
+
+        // 2. Variables that remember what the user typed
+        let first = "";      // first number
+        let operator = "";   // + - * /
+        let second = "";     // second number
+
+        // 3. Show text on the screen
+        function show(text) {
+            screen.textContent = text;
+        }
+
+        // 4. Do the math
+        function calculate() {
+            const a = Number(first);
+            const b = Number(second);
+            let result;
+
+            if (operator === "+") result = a + b;
+            else if (operator === "-") result = a - b;
+            else if (operator === "*") result = a * b;
+            else if (operator === "/") result = b === 0 ? "Error" : a / b;
+
+            show(result);
+            first = result === "Error" ? "" : String(result);
+            operator = "";
+            second = "";
+        }
+
+        // 5. Decide what to do when a button is pressed
+        function press(key) {
+            if (key >= "0" && key <= "9") {
+                if (operator === "") {
+                    first += key;
+                    show(first);
+                } else {
+                    second += key;
+                    show(second);
+                }
+            } else if (key === "C") {
+                first = "";
+                operator = "";
+                second = "";
+                show("0");
+            } else if (key === "=") {
+                if (first !== "" && operator !== "" && second !== "") calculate();
+            } else {
+                // + - * /
+                if (first !== "") operator = key;
+            }
+        }
+
+        // 6. Create the buttons with the DOM
+        const keys = ["7", "8", "9", "/",
+            "4", "5", "6", "*",
+            "1", "2", "3", "-",
+            "0", "C", "=", "+"];
+
+        for (const key of keys) {
+            const button = document.createElement("button");
+            button.textContent = key;
+            button.addEventListener("click", function () {
+                press(key);
+            });
+            buttons.appendChild(button);
+        }
+    </script>
+</body>
+
+</html>
